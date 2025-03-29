@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Светлая тема -->
+    <color name="colorPrimary">#5E35B1</color>
+    <color name="colorPrimaryDark">#4527A0</color>
+    <color name="colorAccent">#FF5252</color>
+    <color name="colorBackground">#FFFFFF</color>
+    <color name="colorText">#212121</color>
+    <color name="colorTextSecondary">#757575</color>
+    <color name="colorDivider">#BDBDBD</color>
+    <color name="colorButtonNormal">#5E35B1</color>
+    <color name="colorButtonPressed">#4527A0</color>
+    <color name="colorError">#FF5252</color>
+    <color name="colorSuccess">#4CAF50</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    
+    <!-- Градиент фона -->
+    <color name="gradientStart">#311B92</color>
+    <color name="gradientCenter">#4A148C</color>
+    <color name="gradientEnd">#6A1B9A</color>
+
+    <!-- Темная тема -->
+    <color name="colorPrimaryNight">#B39DDB</color>
+    <color name="colorPrimaryDarkNight">#4A148C</color>
+    <color name="colorAccentNight">#7C4DFF</color>
+    <color name="colorBackgroundNight">#121212</color>
+    <color name="colorButtonNormalNight">#7C4DFF</color>
+    <color name="colorButtonPressedNight">#B39DDB</color>
+    <color name="colorTextNight">#FFFFFF</color>
+    <color name="purple_500">#6200EE</color>
+</resources>
