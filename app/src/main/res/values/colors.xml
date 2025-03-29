@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Светлая тема -->
-    <color name="colorPrimary">#5E35B1</color>
-    <color name="colorPrimaryDark">#4527A0</color>
-    <color name="colorAccent">#FF5252</color>
-    <color name="colorBackground">#FFFFFF</color>
-    <color name="colorText">#212121</color>
-    <color name="colorTextSecondary">#757575</color>
-    <color name="colorDivider">#BDBDBD</color>
-    <color name="colorButtonNormal">#5E35B1</color>
-    <color name="colorButtonPressed">#4527A0</color>
-    <color name="colorError">#FF5252</color>
-    <color name="colorSuccess">#4CAF50</color>
-    <color name="white">#FFFFFF</color>
-    <color name="black">#000000</color>
+    <color name="colorPrimary">#4A148C</color>
+    <color name="colorPrimaryDark">#311B92</color>
+    <color name="colorAccent">#7C4DFF</color>
+    <color name="colorBackground">#F5F5F5</color>
+    <color name="colorWhite">#FFFFFF</color>
+    <color name="colorButtonNormal">#4A148C</color>
+    <color name="colorButtonPressed">#311B92</color>
+    <color name="colorText">#FFFFFF</color>
+    <color name="colorTextSecondary">#E0E0E0</color>
     
     <!-- Градиент фона -->
     <color name="gradientStart">#311B92</color>

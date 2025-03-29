@@ -37,25 +37,45 @@ public class MainActivity extends AppCompatActivity implements GoalListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences settingsPrefs = getSharedPreferences("Settings", MODE_PRIVATE);
+        boolean isDarkMode = settingsPrefs.getBoolean("dark_mode", false);
+        if (isDarkMode) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        
         preferences = getSharedPreferences("UserPrefs", MODE_PRIVATE);
-        
+        if (!preferences.getBoolean("permissions_requested", false)) {
+            checkPermissions();
+        } else {
+            if (hasUsageStatsPermission()) {
+                startService(new Intent(this, AppBlockerService.class));
+            }
+        }
         if (!preferences.getBoolean("isLoggedIn", false)) {
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
             finish();
             return;
         }
-        
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, new HomeFragment())
-                .commit();
+        logoutButton = findViewById(R.id.logoutButton);
+        welcomeText = findViewById(R.id.welcomeText);
+        bottomNavigationView = findViewById(R.id.bottom_navigation);
+        String currentUserEmail = preferences.getString("currentUser", "");
+        String userName = preferences.getString("name_" + currentUserEmail, "");
+        if (!userName.isEmpty()) {
+            welcomeText.setText("Добро пожаловать, \n" + userName + "!");
+        } else {
+            welcomeText.setText("Добро пожаловать!");
         }
-        
+        logoutButton.setOnClickListener(v -> logout());
+        goals = new ArrayList<>();
+        homeFragment = new HomeFragment();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, homeFragment)
+                .commit();
+
         setupBottomNavigation();
     }
 
@@ -97,25 +117,27 @@ public class MainActivity extends AppCompatActivity implements GoalListener {
     }
 
     public void logout() {
-        SharedPreferences userPrefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
-        userPrefs.edit()
-                .remove("isLoggedIn")
-                .remove("currentUser")
-                .apply();
-
-        SharedPreferences goalsPrefs = getSharedPreferences("GoalsPrefs", Context.MODE_PRIVATE);
-        goalsPrefs.edit().clear().apply();
-
+        Log.d("MainActivity", "Начало процесса выхода");
+        
+        // Очищаем данные пользователя
+        SharedPreferences preferences = getSharedPreferences("GoalsPrefs", MODE_PRIVATE);
+        preferences.edit().clear().apply();
+        
+        // Останавливаем сервис блокировки приложений
         stopService(new Intent(this, AppBlockerService.class));
-
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        
+        // Создаем интент для перехода на экран входа
+        Intent loginIntent = new Intent(this, LoginActivity.class);
+        loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        
+        // Запускаем активность входа и закрываем текущую активность
+        startActivity(loginIntent);
+        finishAffinity();
+        
+        Log.d("MainActivity", "Процесс выхода завершен");
     }
 
     private void setupBottomNavigation() {
-        bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
             Fragment selectedFragment = null;
 
@@ -139,6 +161,10 @@ public class MainActivity extends AppCompatActivity implements GoalListener {
             }
             return false;
         });
+
+        getSupportFragmentManager().beginTransaction()
+            .replace(R.id.fragment_container, new HomeFragment())
+            .commit();
     }
 
     @Override

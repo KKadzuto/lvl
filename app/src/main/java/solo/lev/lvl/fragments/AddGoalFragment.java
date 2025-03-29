@@ -15,7 +15,7 @@ import java.util.Calendar;
 import solo.lev.lvl.MainActivity;
 import solo.lev.lvl.R;
 import solo.lev.lvl.models.Goal;
-import solo.lev.lvl.fragments.chatmoderation;
+import solo.lev.lvl.services.ModerationServ;
 
 public class AddGoalFragment extends Fragment {
     private TextInputEditText titleEditText;
@@ -31,13 +31,14 @@ public class AddGoalFragment extends Fragment {
         descriptionEditText = view.findViewById(R.id.descriptionEditText);
         timePicker = view.findViewById(R.id.timePicker);
         addGoalButton = view.findViewById(R.id.addGoalButton);
-        addGoalButton.setOnClickListener(v -> saveGoal());
+        addGoalButton.setOnClickListener(v -> validateGoal());
         return view;
     }
 
-    private void saveGoal() {
+    private void validateGoal() {
         String title = titleEditText.getText().toString().trim();
         String description = descriptionEditText.getText().toString().trim();
+
         if (title.isEmpty()) {
             titleEditText.setError("Введите название цели");
             return;
@@ -47,6 +48,28 @@ public class AddGoalFragment extends Fragment {
             return;
         }
 
+        ModerationServ.moderateGoal(title, description, new ModerationServ.ModerationCallback() {
+            @Override
+            public void onSuccess(boolean isAppropriate, String feedback) {
+                if (isAppropriate) {
+                    saveGoal(title, description);
+                } else {
+                    getActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Проверка не пройдена: " + feedback, Toast.LENGTH_LONG).show()
+                    );
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                getActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Ошибка модерации: " + error, Toast.LENGTH_LONG).show()
+                );
+            }
+        });
+    }
+
+    private void saveGoal(String title, String description) {
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, timePicker.getHour());
         calendar.set(Calendar.MINUTE, timePicker.getMinute());
@@ -55,7 +78,9 @@ public class AddGoalFragment extends Fragment {
         if (mainActivity != null) {
             mainActivity.addGoal(newGoal);
             getParentFragmentManager().popBackStack();
-            Toast.makeText(getContext(), "Цель добавлена", Toast.LENGTH_SHORT).show();
+            getActivity().runOnUiThread(() ->
+                    Toast.makeText(getContext(), "Цель добавлена", Toast.LENGTH_SHORT).show()
+            );
         }
     }
-} 
+}
