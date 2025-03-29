@@ -21,7 +21,7 @@ public class ModerationServ {
         void onError(String error);
     }
 
-    public static void moderateGoal(String title, String description, ModerationCallback callback) {
+    public static void moderateGoal(String title, String description, String deadline, ModerationCallback callback) {
         if (title == null || description == null) {
             callback.onError("Название или описание цели не может быть пустым");
             return;
@@ -30,11 +30,13 @@ public class ModerationServ {
                 "Проанализируйте цель и её описание на русском языке:\n" +
                         "Название цели: %s\n" +
                         "Описание цели: %s\n\n" +
+                        "Дедлайн: %s\n\n" +
                         "Пожалуйста, оцените следующие аспекты:\n" +
                         "1. Соответствие названия и описания (логическая связь)\n" +
                         "2. Измеримость (есть ли конкретные критерии достижения)\n\n" +
+                        "3. Можно ли это сделать в это время?\n" +
                         "Ответ в JSON-формате:{\"appropriate\": true/false, \"feedback\": 'краткий комментарий'}",
-                title, description
+                title, description,deadline
         );
 
         JSONObject jsonBody = new JSONObject();

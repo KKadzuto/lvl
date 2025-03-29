@@ -1,5 +1,6 @@
 package solo.lev.lvl.fragments;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,11 +35,10 @@ public class AddGoalFragment extends Fragment {
         addGoalButton.setOnClickListener(v -> validateGoal());
         return view;
     }
-
     private void validateGoal() {
         String title = titleEditText.getText().toString().trim();
         String description = descriptionEditText.getText().toString().trim();
-
+        String deadline = timePicker.getHour() + ":" + timePicker.getMinute();
         if (title.isEmpty()) {
             titleEditText.setError("Введите название цели");
             return;
@@ -48,15 +48,13 @@ public class AddGoalFragment extends Fragment {
             return;
         }
 
-        ModerationServ.moderateGoal(title, description, new ModerationServ.ModerationCallback() {
+        ModerationServ.moderateGoal(title, description,deadline, new ModerationServ.ModerationCallback() {
             @Override
             public void onSuccess(boolean isAppropriate, String feedback) {
                 if (isAppropriate) {
                     saveGoal(title, description);
                 } else {
-                    getActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Проверка не пройдена: " + feedback, Toast.LENGTH_LONG).show()
-                    );
+                    showFeedbackDialog(feedback);
                 }
             }
 
@@ -82,5 +80,15 @@ public class AddGoalFragment extends Fragment {
                     Toast.makeText(getContext(), "Цель добавлена", Toast.LENGTH_SHORT).show()
             );
         }
+    }
+    private void showFeedbackDialog(String feedback){
+        getActivity().runOnUiThread(() -> {
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Рекомендации по улучшению")
+                    .setMessage(feedback)
+                    .setPositiveButton("Ок", (dialog, which) -> dialog.dismiss())
+                    .setNegativeButton("Изменить", (dialog, which) -> dialog.dismiss())
+                    .show();
+        });
     }
 }
