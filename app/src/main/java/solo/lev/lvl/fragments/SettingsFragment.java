@@ -1,18 +1,19 @@
 package solo.lev.lvl.fragments;
 
-import android.app.AlertDialog;
+import android.app.ActivityOptions;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
-import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,24 +26,14 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import solo.lev.lvl.R;
+
 import solo.lev.lvl.LoginActivity;
-import solo.lev.lvl.adapters.AppAdapter;
-import solo.lev.lvl.models.AppInfo;
-import android.content.Context;
-import solo.lev.lvl.MainActivity;
-import com.google.android.material.textfield.TextInputEditText;
-import solo.lev.lvl.services.WeatherService;
-import android.widget.Button;
+import solo.lev.lvl.R;
 import solo.lev.lvl.adapters.AppSelectAdapter;
 import solo.lev.lvl.services.AppBlockerService;
-import android.app.Activity;
 
 public class SettingsFragment extends Fragment {
     private Button logoutButton;
-    private MaterialButton checkWeatherButton;
-    private TextInputEditText dateInput;
-    private static final int PERMISSION_REQUEST_CODE = 123;
     private RecyclerView appListRecyclerView;
     private MaterialButton permissionButton;
     private List<ApplicationInfo> installedApps;
@@ -53,64 +44,66 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        preferences = requireContext().getSharedPreferences("GoalsPrefs", Context.MODE_PRIVATE);
+        preferences = requireContext().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
-        appListRecyclerView = view.findViewById(R.id.appListRecyclerView);
-        permissionButton = view.findViewById(R.id.permissionButton);
-        logoutButton = view.findViewById(R.id.logoutButton);
+        initViews(view);
         setupPermissionButton();
         loadInstalledApps();
         setupRecyclerView();
-        requireContext().startService(new Intent(requireContext(), AppBlockerService.class));
         setupLogoutButton();
         return view;
+    }
+
+    private void initViews(View view) {
+        appListRecyclerView = view.findViewById(R.id.appListRecyclerView);
+        permissionButton = view.findViewById(R.id.permissionButton);
+        logoutButton = view.findViewById(R.id.logoutButton);
     }
 
     private void setupRecyclerView() {
         appListRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new AppSelectAdapter(requireContext(), installedApps, selectedApps,
-            (packageName, isSelected) -> {
-                if (isSelected) {
-                    selectedApps.add(packageName);
-                } else {
-                    selectedApps.remove(packageName);
-                }
-                saveSelectedApps();
-            });
+                (packageName, isSelected) -> {
+                    if (isSelected) {
+                        if (!selectedApps.contains(packageName)) {
+                            selectedApps.add(packageName);
+                        }
+                    } else {
+                        selectedApps.remove(packageName);
+                    }
+                    saveSelectedApps();
+                });
         appListRecyclerView.setAdapter(adapter);
     }
 
     private void setupPermissionButton() {
         permissionButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-            startActivity(intent);
+            try {
+                Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "Не удалось открыть настройки", Toast.LENGTH_SHORT).show();
+                Log.e("SettingsFragment", "Permission error", e);
+            }
         });
     }
 
     private void loadInstalledApps() {
         PackageManager pm = requireContext().getPackageManager();
-        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        
-        List<ResolveInfo> resolveInfos = pm.queryIntentActivities(mainIntent, 0);
+        List<ApplicationInfo> apps = pm.getInstalledApplications(PackageManager.GET_META_DATA);
         installedApps = new ArrayList<>();
-        
-        for (ResolveInfo resolveInfo : resolveInfos) {
-            try {
-                ApplicationInfo appInfo = pm.getApplicationInfo(resolveInfo.activityInfo.packageName, 0);
-                if ((appInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
-                    installedApps.add(appInfo);
-                }
-            } catch (PackageManager.NameNotFoundException e) {
-                Log.e("SettingsFragment", "Ошибка при получении информации о приложении", e);
+
+        for (ApplicationInfo appInfo : apps) {
+            if ((appInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
+                installedApps.add(appInfo);
             }
         }
-        
+
         selectedApps = loadSelectedApps();
     }
 
@@ -122,72 +115,49 @@ public class SettingsFragment extends Fragment {
     }
 
     private void saveSelectedApps() {
-        String json = new Gson().toJson(selectedApps);
-        preferences.edit().putString("blocked_apps", json).apply();
+        preferences.edit()
+                .putString("blocked_apps", new Gson().toJson(selectedApps))
+                .apply();
+
+        requireContext().startService(new Intent(requireContext(), AppBlockerService.class));
     }
 
     private void setupLogoutButton() {
         logoutButton.setOnClickListener(v -> {
-            if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).logout();
+            Bundle options = ActivityOptions.makeCustomAnimation(
+                    requireContext(),
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out
+            ).toBundle();
+
+            clearUserData();
+
+            Intent intent = new Intent(requireContext(), LoginActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                startActivity(intent, options);
+            } else {
+                startActivity(intent);
             }
+
+            requireActivity().finishAffinity();
         });
     }
 
-    private void setupWeatherButton() {
-        checkWeatherButton.setOnClickListener(v -> {
-            String date = dateInput.getText().toString();
-            if (date.isEmpty()) {
-                dateInput.setError("Введите дату");
-                return;
-            }
-            if (!date.matches("\\d{2}\\.\\d{2}\\.\\d{4}")) {
-                dateInput.setError("Неверный формат даты. Используйте дд.мм.гггг");
-                return;
-            }
-            checkWeatherButton.setEnabled(false);
-            checkWeatherButton.setText("Загрузка...");
-            WeatherService.getWeather(date, new WeatherService.WeatherCallback() {
-                @Override
-                public void onSuccess(String temperature, String description, String humidity) {
-                    if (getActivity() == null) return;
-                    
-                    getActivity().runOnUiThread(() -> {
-                        checkWeatherButton.setEnabled(true);
-                        checkWeatherButton.setText("Проверить погоду");
-                        
-                        new AlertDialog.Builder(requireContext())
-                            .setTitle("Погода в Актобе")
-                            .setMessage(String.format(
-                                "Температура: %s\nОписание: %s\nВлажность: %s",
-                                temperature, description, humidity
-                            ))
-                            .setPositiveButton("OK", null)
-                            .show();
-                    });
-                }
-
-                @Override
-                public void onError(String error) {
-                    if (getActivity() == null) return;
-                    
-                    getActivity().runOnUiThread(() -> {
-                        checkWeatherButton.setEnabled(true);
-                        checkWeatherButton.setText("Проверить погоду");
-                        Toast.makeText(requireContext(), 
-                            "Ошибка при получении погоды: " + error, 
-                            Toast.LENGTH_LONG).show();
-                    });
-                }
-            });
-        });
+    private void clearUserData() {
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.remove("isLoggedIn");
+        editor.remove("currentUser");
+        editor.apply();
+        stopServices();
     }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            loadInstalledApps();
+    private void stopServices() {
+        try {
+            requireContext().stopService(new Intent(requireContext(), AppBlockerService.class));
+        } catch (Exception e) {
+            Log.e("Logout", "Error stopping services", e);
         }
     }
-} 
+}

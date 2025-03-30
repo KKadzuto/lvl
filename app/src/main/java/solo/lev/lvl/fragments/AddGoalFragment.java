@@ -87,7 +87,6 @@ public class AddGoalFragment extends Fragment {
                     .setTitle("Рекомендации по улучшению")
                     .setMessage(feedback)
                     .setPositiveButton("Ок", (dialog, which) -> dialog.dismiss())
-                    .setNegativeButton("Изменить", (dialog, which) -> dialog.dismiss())
                     .show();
         });
     }
